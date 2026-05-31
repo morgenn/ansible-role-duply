@@ -71,6 +71,11 @@ duply_default_verbosity: '1'
 # @var duply_default_volsize:description: Default volume size
 duply_default_volsize: '1024'
 
+# @var duply_default_temp_dir:description: Temp directory for duplicity archive assembly
+# Set to a path with enough free space (backup needs ~1x source size as temp).
+# Empty string uses system /tmp.
+duply_default_temp_dir: /var/tmp/
+
 # @var duply_default_variables:description: Default variables list
 # @var duply_default_variables:example: >
 # duply_default_variables:
@@ -98,6 +103,33 @@ duply_log_dir: /var/log/duply
 
 # @var duply_use_cronic:description: Wrap backup command with cronic (emails on failure only)
 duply_use_cronic: true
+
+# @var duply_nice_prefix:description: >
+#   Command prefix to limit CPU and I/O priority of backup jobs.
+#   Ensures web services (apache, varnish, php-fpm) always get priority.
+#   - nice -n 19: lowest CPU scheduling priority
+#   - ionice -c3: idle I/O class (only uses disk when nothing else needs it)
+#   Set to empty string to disable resource limiting.
+# @end
+duply_nice_prefix: 'nice -n 19 ionice -c3'
+
+# @var duply_cron_job_template:description: >
+#   Jinja2 template string for the cron job command. Available variables:
+#   - duply_bin_path: path to duply binary
+#   - duply_log_dir: log directory path
+#   - duply_nice_prefix: CPU/IO priority prefix
+#   - item.name: profile name
+#   - item.command / duply_default_command: backup command
+#   Override this to customize logging, wrappers, or output handling.
+# @end
+duply_cron_job_template: >-
+  {% if duply_log_dir | default('') | length > 0 -%}
+  { echo ""; echo "═══ START $(date '+\%Y-\%m-\%d \%H:\%M:\%S') {{ item.name }} ═══"; {{ duply_nice_prefix }} {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }} 2>&1; RC=$?; if [ $RC -ne 0 ]; then echo "[FAILED] exit $RC"; fi; echo "═══ END   $(date '+\%Y-\%m-\%d \%H:\%M:\%S') {{ item.name }} (exit $RC) ═══"; (exit $RC); } >> {{ duply_log_dir }}/{{ item.name }}.log 2>&1
+  {%- elif duply_use_cronic | default(true) -%}
+  cronic {{ duply_nice_prefix }} {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }}
+  {%- else -%}
+  {{ duply_nice_prefix }} {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }}
+  {%- endif %}
 
 # @var duply_bin_path:description: Path where duply binary is installed
 duply_bin_path: /usr/local/bin/duply

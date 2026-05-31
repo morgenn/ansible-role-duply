@@ -312,6 +312,19 @@
   tags:
     - duply
 
+- name: Create temp directory for duplicity
+  ansible.builtin.file:
+    path: "{{ duply_default_temp_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '1777'
+  when:
+    - duply_default_temp_dir | default('') | length > 0
+    - duply_default_temp_dir not in ['/tmp', '/tmp/', '/var/tmp', '/var/tmp/']
+  tags:
+    - duply
+
 - name: Create cronjob entry
   loop: "{{ duply_profiles }}"
   loop_control:
@@ -323,14 +336,7 @@
     day: "{{ item.day | default(duply_default_day) }}"
     month: "{{ item.month | default(duply_default_month) }}"
     weekday: "{{ item.weekday | default(duply_default_weekday) }}"
-    job: >-
-      {% if duply_log_dir | default('') | length > 0 -%}
-      {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }} >> {{ duply_log_dir }}/{{ item.name }}.log 2>&1 || { echo "[FAILED] $(date '+\%Y-\%m-\%d \%H:\%M:\%S') backup {{ item.name }} exited $?" >> {{ duply_log_dir }}/{{ item.name }}.log; exit 1; }
-      {%- elif duply_use_cronic | default(true) -%}
-      cronic {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }}
-      {%- else -%}
-      {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }}
-      {%- endif %}
+    job: "{{ duply_cron_job_template }}"
     state: "{{ item.state | default('present') }}"
   tags:
     - duply

@@ -12,10 +12,12 @@ duploy_packages:
 # pip packages needed for duplicity on AL2023
 # Use --no-deps to avoid pulling in every optional backend (Dropbox, Azure, etc.)
 # boto3 (S3 backend) is already installed via dnf above.
+# Only install the runtime deps duplicity actually needs.
 duply_pip_packages:
   - name: duplicity
     extra_args: "--no-deps"
   - name: fasteners
+  - name: pexpect
   - name: python-gettext
 
 # duply install method: 'package' (dnf/apt) or 'source' (download script)

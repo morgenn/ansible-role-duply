@@ -1,6 +1,21 @@
 # Changelog
 
-## [3.2.0](https://github.com/morgenn/ansible-role-duply/compare/v3.1.0...v3.2.0) (2026-05-31)
+## [3.3.0](https://github.com/morgenn/ansible-role-duply/compare/v3.2.0...v3.3.0) (2026-05-31)
+
+
+### Features
+
+* add `duply_nice_prefix` for CPU/IO priority limiting (nice -n 19 + ionice -c3)
+* move cron job command to configurable `duply_cron_job_template` variable
+* add `TEMP_DIR` to duply config template via `duply_default_temp_dir`
+* create temp directory task (skips /tmp and /var/tmp, uses 1777 permissions)
+
+### Fixes
+
+* fix stray "exit" text in log output (use `(exit $RC)` subshell instead of `exit $RC`)
+* add `pexpect` to AL2023 pip packages (runtime dependency of duplicity)
+* remove `gnupg2` from AL2023 packages (conflicts with pre-installed gnupg2-minimal)
+* fix pip install to support `extra_args` dict format for `--no-deps`
 
 
 ### Features

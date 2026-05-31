@@ -312,6 +312,50 @@ promoted to a full backup. Set to `1W` for weekly full backups with daily increm
 duply_default_max_fullbkp_age: 1W
 ```
 
+### duply_nice_prefix
+
+Command prefix to limit CPU and I/O priority of backup jobs. Ensures web services
+always get scheduling priority over backups.
+
+#### Default value
+
+```YAML
+duply_nice_prefix: 'nice -n 19 ionice -c3'
+```
+
+Set to empty string to disable:
+```YAML
+duply_nice_prefix: ''
+```
+
+### duply_cron_job_template
+
+Jinja2 template string for the cron job command. Override to customize logging,
+wrappers, or output handling. Available variables: `duply_bin_path`, `duply_log_dir`,
+`duply_nice_prefix`, `item.name`, `item.command`, `duply_default_command`.
+
+#### Default value
+
+Uses START/END markers with timestamps, logs to file, and preserves exit code for
+cron MAILTO alerts.
+
+### duply_default_temp_dir
+
+Temp directory for duplicity archive assembly. Duplicity needs roughly 1x the source
+size as temp space. Set to a path on a volume with enough free space.
+Empty string uses duplicity's default (`/tmp`).
+
+#### Default value
+
+```YAML
+duply_default_temp_dir: ''
+```
+
+Override in host_vars for systems where /tmp is too small:
+```YAML
+duply_default_temp_dir: /backup/tmp
+```
+
 ### duply_default_verbosity
 
 Default verbosity level

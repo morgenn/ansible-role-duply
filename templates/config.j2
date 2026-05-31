@@ -6,7 +6,7 @@ GPG_KEY="{{ item.gpg_key | default(duply_default_gpg_key) }}"
 GPG_PW="{{ item.gpg_passwd | default(duply_default_gpg_passwd) }}"
 GPG_OPTS="{{ item.gpg_opts | default(duply_default_gpg_opts) }}"
 
-TARGET="{{ item.target | default(duply_target) }}/{{ inventory_hostname }}/{{ item.name }}"
+TARGET="{% if item.target is defined %}{{ item.target }}{% else %}{{ duply_target }}/{{ inventory_hostname }}/{{ item.name }}{% endif %}"
 SOURCE="{{ item.source | default("/") }}"
 {% if item.arch_dir | default(false) %}
 ARCH_DIR="{{ item.arch_dir }}"
@@ -16,5 +16,8 @@ MAX_AGE="{{ item.max_age | default(duply_default_max_age) }}"
 MAX_FULL_BACKUPS="{{ item.max_full | default(duply_default_max_full) }}"
 MAX_FULLBKP_AGE="{{ item.max_fullbkp_age | default(duply_default_max_fullbkp_age) }}"
 VERBOSITY="{{ item.verbosity | default(duply_default_verbosity) }}"
+{% if item.temp_dir | default(duply_default_temp_dir) %}
+TEMP_DIR="{{ item.temp_dir | default(duply_default_temp_dir) }}"
+{% endif %}
 
 DUPL_PARAMS="$DUPL_PARAMS --volsize {{ item.volsize | default(duply_default_volsize) }}"
