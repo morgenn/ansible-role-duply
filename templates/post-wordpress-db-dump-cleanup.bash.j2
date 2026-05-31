@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+# Duply post-backup script: WordPress database dump cleanup
+# Profile: {{ item.name }}
+#
+# Removes the database dump file after backup completes so it doesn't
+# linger on disk between backup runs.
+
+set -uo pipefail
+umask 077
+
+# Skip if not running a backup operation
+if [[ "${CMD_NEXT:-}" != "bkp" ]]; then
+  echo "Skipping post script, not running a backup"
+  exit 0
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Configuration (must match pre script)
+# ─────────────────────────────────────────────────────────────────────────────
+
+SITE_PATH="{{ item.source }}"
+DUMP_DIR="${SITE_PATH}/secure"
+DUMP_NAME="{{ item.db_dump_name | default(item.name) }}"
+DUMP_FILE="${DUMP_DIR}/${DUMP_NAME}-db-backup.sql.gz"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cleanup
+# ─────────────────────────────────────────────────────────────────────────────
+
+if [[ -f "$DUMP_FILE" ]]; then
+  rm -f "$DUMP_FILE"
+  echo "Cleaned up database dump: ${DUMP_FILE}"
+fi
