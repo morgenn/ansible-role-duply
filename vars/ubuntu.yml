@@ -1,10 +1,17 @@
 ---
+# Ubuntu 20.04+ (focal, jammy, noble)
 duploy_packages:
   - duply
   - python3-paramiko
   - python3-boto
   - lftp
-  - cronic
   - ftp
 
-...
+# No pip packages needed (duplicity pulled in as duply dependency)
+duply_pip_packages: []
+
+# duply install method: 'package' (dnf/apt) or 'source' (download script)
+duply_install_method: package
+
+# cronic is available as a package on Ubuntu
+duply_cronic_install_method: package

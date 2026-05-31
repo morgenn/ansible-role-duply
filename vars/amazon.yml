@@ -1,0 +1,25 @@
+---
+# Amazon Linux 2023
+# Neither duply nor duplicity are in the standard AL2023 repos.
+# duplicity is installed via pip; duply is installed from source (shell script).
+# python3-boto3 is available via dnf on AL2023.
+
+duploy_packages:
+  - python3-pip
+  - python3-boto3
+  - gnupg2
+  - cronie
+
+# pip packages needed for duplicity on AL2023
+duply_pip_packages:
+  - duplicity
+
+# duply install method: 'package' (dnf/apt) or 'source' (download script)
+duply_install_method: source
+
+# duply source URL (latest stable release)
+duply_source_url: "https://sourceforge.net/projects/ftplicity/files/duply%20%28simple%20duplicity%29/2.5.x/duply_2.5.1.tgz/download"
+duply_source_version: "2.5.1"
+
+# cronic not available as package on AL2023 — install from source
+duply_cronic_install_method: source

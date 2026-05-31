@@ -30,6 +30,15 @@ galaxy_info:
         - focal
         - jammy
         - noble
+    - name: Amazon
+      versions:
+        - 2
+        - 2023
+    - name: EL
+      versions:
+        - 7
+        - 8
+        - 9
   galaxy_tags:
     - duply
     - duplicity

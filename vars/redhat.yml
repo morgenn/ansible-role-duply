@@ -1,0 +1,20 @@
+---
+# RHEL/CentOS/Rocky/Alma Linux 7/8/9
+# duplicity is available via EPEL on RHEL-based systems.
+# duply may need to be installed from source on newer RHEL versions.
+
+duploy_packages:
+  - duply
+  - duplicity
+  - python3-paramiko
+  - python3-boto3
+  - cronie
+
+# No pip packages needed (duplicity from EPEL)
+duply_pip_packages: []
+
+# duply install method: 'package' (dnf/apt) or 'source' (download script)
+duply_install_method: package
+
+# cronic not available as package on RHEL — install from source
+duply_cronic_install_method: source

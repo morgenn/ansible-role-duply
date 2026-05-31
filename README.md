@@ -44,6 +44,23 @@ Building and improving this Ansible role have been sponsored by my current and p
 
 - Minimum Ansible version: `2.10`
 
+## Supported Platforms
+
+| Platform | Versions | Install Method |
+|----------|----------|----------------|
+| Ubuntu | 18.04, 20.04, 22.04, 24.04 | `apt` (duply + duplicity as packages) |
+| Amazon Linux | 2023 | `pip` (duplicity) + source (duply script) |
+| RHEL/CentOS | 7, 8, 9 | `dnf` via EPEL (duply + duplicity) |
+
+### Amazon Linux 2023 Notes
+
+Neither `duply` nor `duplicity` are in the standard AL2023 repositories:
+- **duplicity** is installed via `pip`
+- **duply** is downloaded as a source tarball from SourceForge and installed to `/usr/local/bin/duply`
+- **cronic** is cloned from GitHub and symlinked to `/usr/bin/cronic`
+
+Set `duply_install_cronic: false` if cronic is already installed by another role or playbook task.
+
 ## Default Variables
 
 ### duply_default_command
@@ -164,6 +181,101 @@ duply_default_variables:
     value: S62L74JZVLLKQ5E9077R
   - key: aws_secret_access_key
     value: xmGiLiTMBGzMMwRh+jAYBvn9C7roiuDqVHDF_+RI
+```
+
+### duply_pip_packages
+
+Python packages to install via pip (for platforms without native packages).
+Set automatically by OS vars files.
+
+#### Default value
+
+```YAML
+duply_pip_packages: []
+```
+
+### duply_install_method
+
+How to install duply — `package` (dnf/apt) or `source` (download tarball).
+Set automatically by OS vars files.
+
+#### Default value
+
+```YAML
+duply_install_method: package
+```
+
+### duply_source_url
+
+URL to download duply source tarball (when `duply_install_method` is `source`).
+
+#### Default value
+
+```YAML
+duply_source_url: "https://sourceforge.net/projects/ftplicity/files/duply%20%28simple%20duplicity%29/2.5.x/duply_2.5.1.tgz/download"
+```
+
+### duply_source_version
+
+Version string for duply source install (used for idempotency check).
+
+#### Default value
+
+```YAML
+duply_source_version: "2.5.1"
+```
+
+### duply_bin_path
+
+Path where duply binary is installed. On Ubuntu this is `/usr/bin/duply` (from package).
+On AL2023/RHEL with source install, this is `/usr/local/bin/duply`.
+
+#### Default value
+
+```YAML
+duply_bin_path: /usr/local/bin/duply
+```
+
+### duply_install_cronic
+
+Whether to install cronic (cron error reporting wrapper). Set to `false` if cronic
+is already installed by another role or playbook task.
+
+#### Default value
+
+```YAML
+duply_install_cronic: true
+```
+
+### duply_cronic_install_method
+
+How to install cronic — `package` (apt on Ubuntu) or `source` (git clone on AL2023/RHEL).
+Set automatically by OS vars files.
+
+#### Default value
+
+```YAML
+duply_cronic_install_method: source
+```
+
+### duply_cronic_repo
+
+Git repo URL for cronic source install.
+
+#### Default value
+
+```YAML
+duply_cronic_repo: "https://github.com/justincase/cronic.git"
+```
+
+### duply_cronic_src_path
+
+Local path to clone cronic source.
+
+#### Default value
+
+```YAML
+duply_cronic_src_path: /opt/umac/src/cronic
 ```
 
 ### duply_default_verbosity

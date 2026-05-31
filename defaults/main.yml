@@ -77,4 +77,32 @@ duply_default_volsize: '1024'
 # @end
 duply_default_variables: []
 
+# @var duply_pip_packages:description: Python packages to install via pip (for platforms without native packages)
+duply_pip_packages: []
+
+# @var duply_install_method:description: How to install duply - 'package' (dnf/apt) or 'source' (download script)
+duply_install_method: package
+
+# @var duply_source_url:description: URL to download duply source tarball (when duply_install_method is 'source')
+duply_source_url: "https://sourceforge.net/projects/ftplicity/files/duply%20%28simple%20duplicity%29/2.5.x/duply_2.5.1.tgz/download"
+
+# @var duply_source_version:description: Version string for duply source install (used for idempotency check)
+duply_source_version: "2.5.1"
+
+# @var duply_bin_path:description: Path where duply binary is installed
+duply_bin_path: /usr/local/bin/duply
+
+# @var duply_install_cronic:description: Whether to install cronic (cron error wrapper)
+duply_install_cronic: true
+
+# @var duply_cronic_install_method:description: How to install cronic - 'package' (apt) or 'source' (git clone)
+# Ubuntu has cronic as a package; AL2023/RHEL do not.
+duply_cronic_install_method: source
+
+# @var duply_cronic_repo:description: Git repo URL for cronic source install
+duply_cronic_repo: "https://github.com/justincase/cronic.git"
+
+# @var duply_cronic_src_path:description: Local path to clone cronic source
+duply_cronic_src_path: /opt/umac/src/cronic
+
 ...

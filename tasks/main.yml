@@ -6,7 +6,7 @@
     - "{{ ansible_distribution | lower }}.yml"
     - "{{ ansible_os_family | lower }}.yml"
   tags:
-    - ipsec
+    - duply
 
 - name: Install required packages
   loop: "{{ duploy_packages }}"
@@ -16,6 +16,145 @@
   tags:
     - duply
 
+- name: Install pip packages (for platforms without native duplicity)
+  loop: "{{ duply_pip_packages | default([]) }}"
+  ansible.builtin.pip:
+    name: "{{ item }}"
+    state: present
+  when: duply_pip_packages | default([]) | length > 0
+  tags:
+    - duply
+
+# Install cronic (cron error reporting wrapper) if not already available.
+# On Ubuntu it's a package; on AL2023/RHEL it's a single-file script from git.
+- name: Check if cronic is available
+  ansible.builtin.command: which cronic
+  register: cronic_check
+  changed_when: false
+  failed_when: false
+  when: duply_install_cronic | default(true)
+  tags:
+    - duply
+
+- name: Install cronic from package manager
+  ansible.builtin.package:
+    name: cronic
+    state: present
+  when:
+    - duply_install_cronic | default(true)
+    - cronic_check.rc != 0
+    - duply_cronic_install_method | default('source') == 'package'
+  failed_when: false
+  tags:
+    - duply
+
+- name: Clone cronic repository (when not available as package)
+  ansible.builtin.git:
+    repo: "{{ duply_cronic_repo | default('https://github.com/justincase/cronic.git') }}"
+    dest: "{{ duply_cronic_src_path | default('/opt/umac/src/cronic') }}"
+    update: false
+  when:
+    - duply_install_cronic | default(true)
+    - cronic_check.rc != 0
+    - duply_cronic_install_method | default('source') == 'source'
+  tags:
+    - duply
+
+- name: Ensure cronic is executable
+  ansible.builtin.file:
+    path: "{{ duply_cronic_src_path | default('/opt/umac/src/cronic') }}/cronic"
+    mode: '0755'
+  when:
+    - duply_install_cronic | default(true)
+    - cronic_check.rc != 0
+    - duply_cronic_install_method | default('source') == 'source'
+  tags:
+    - duply
+
+- name: Create cronic symlinks
+  ansible.builtin.file:
+    src: "{{ duply_cronic_src_path | default('/opt/umac/src/cronic') }}/cronic"
+    dest: "{{ item }}/cronic"
+    state: link
+  loop:
+    - /usr/bin
+    - /usr/local/bin
+  when:
+    - duply_install_cronic | default(true)
+    - cronic_check.rc != 0
+    - duply_cronic_install_method | default('source') == 'source'
+  tags:
+    - duply
+
+# Install duply from source when not available as a system package (e.g., AL2023)
+- name: Check if duply is already installed
+  ansible.builtin.stat:
+    path: "{{ duply_bin_path | default('/usr/local/bin/duply') }}"
+  register: duply_bin_stat
+  when: duply_install_method | default('package') == 'source'
+  tags:
+    - duply
+
+- name: Check installed duply version
+  ansible.builtin.command: "{{ duply_bin_path | default('/usr/local/bin/duply') }} --version"
+  register: duply_installed_version
+  changed_when: false
+  failed_when: false
+  when:
+    - duply_install_method | default('package') == 'source'
+    - duply_bin_stat.stat.exists | default(false)
+  tags:
+    - duply
+
+- name: Create temp directory for duply source
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: duply_
+  register: duply_temp_dir
+  when:
+    - duply_install_method | default('package') == 'source'
+    - not (duply_bin_stat.stat.exists | default(false)) or
+      (duply_source_version | default('') not in (duply_installed_version.stdout | default('')))
+  tags:
+    - duply
+
+- name: Download duply source
+  ansible.builtin.get_url:
+    url: "{{ duply_source_url }}"
+    dest: "{{ duply_temp_dir.path }}/duply.tgz"
+    mode: '0644'
+  when: duply_temp_dir.path is defined
+  tags:
+    - duply
+
+- name: Extract duply source
+  ansible.builtin.unarchive:
+    src: "{{ duply_temp_dir.path }}/duply.tgz"
+    dest: "{{ duply_temp_dir.path }}"
+    remote_src: true
+  when: duply_temp_dir.path is defined
+  tags:
+    - duply
+
+- name: Install duply binary from source
+  ansible.builtin.copy:
+    src: "{{ duply_temp_dir.path }}/duply_{{ duply_source_version }}/duply"
+    dest: "{{ duply_bin_path | default('/usr/local/bin/duply') }}"
+    mode: '0755'
+    remote_src: true
+  when: duply_temp_dir.path is defined
+  tags:
+    - duply
+
+- name: Clean up temp directory
+  ansible.builtin.file:
+    path: "{{ duply_temp_dir.path }}"
+    state: absent
+  when: duply_temp_dir.path is defined
+  tags:
+    - duply
+
+# Profile management
 - name: Create profile directory
   loop: "{{ duply_profiles }}"
   loop_control:
@@ -138,7 +277,7 @@
     day: "{{ item.day | default(duply_default_day) }}"
     month: "{{ item.month | default(duply_default_month) }}"
     weekday: "{{ item.weekday | default(duply_default_weekday) }}"
-    job: cronic duply {{ item.name }} {{ item.command | default(duply_default_command) }}
+    job: "cronic {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }}"
     state: "{{ item.state | default('present') }}"
   tags:
     - duply

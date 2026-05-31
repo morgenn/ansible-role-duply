@@ -1,0 +1,47 @@
+# Default: normalize text → LF everywhere
+* text=auto eol=lf
+
+# Explicit LF for scripts (safety on Linux)
+*.sh   text eol=lf
+*.bash text eol=lf
+
+# Windows-only files (optional)
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Explicitly mark file types as text
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.md   text eol=lf
+*.cfg  text eol=lf
+*.conf text eol=lf
+*.j2   text eol=lf
+*.txt  text eol=lf
+*.json text eol=lf
+*.xml  text eol=lf
+*.py   text eol=lf
+*.env  text eol=lf
+*.toml text eol=lf
+*.ini  text eol=lf
+*.service text eol=lf
+*.timer text eol=lf
+Makefile text eol=lf
+Dockerfile text eol=lf
+
+# PEM certificates (text, but treat carefully)
+*.pem  text eol=lf
+*.crt  text eol=lf
+*.key  text eol=lf
+
+# Never touch binaries
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.tar  binary
+*.tgz  binary
+*.encrypted binary
