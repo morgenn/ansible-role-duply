@@ -216,14 +216,30 @@
   tags:
     - duply
 
-- name: Write pre file
+- name: Write pre file (inline content)
   loop: "{{ duply_profiles }}"
   loop_control:
     label: "/etc/duply/{{ item.name }}/pre"
   when:
-    - false if item.pre is not defined else (item.pre | length > 0)
+    - item.pre | default('') | length > 0
+    - item.pre_template is not defined
   ansible.builtin.copy:
     content: "{{ item.pre }}"
+    dest: "/etc/duply/{{ item.name }}/pre"
+    mode: u=rwx,g=,o=
+  tags:
+    - duply
+
+- name: Write pre file (from template)
+  loop: "{{ duply_profiles }}"
+  loop_control:
+    label: "/etc/duply/{{ item.name }}/pre"
+  when:
+    - item.pre_template is defined
+    - item.pre_template | length > 0
+    - ('present' if item.state is not defined else item.state) == "present"
+  ansible.builtin.template:
+    src: "{{ item.pre_template }}"
     dest: "/etc/duply/{{ item.name }}/pre"
     mode: u=rwx,g=,o=
   tags:
@@ -234,21 +250,38 @@
   loop_control:
     label: "/etc/duply/{{ item.name }}/pre"
   when:
-    - true if item.pre is not defined else (item.pre | length <= 0)
+    - item.pre is not defined
+    - item.pre_template is not defined
   ansible.builtin.file:
     path: "/etc/duply/{{ item.name }}/pre"
     state: absent
   tags:
     - duply
 
-- name: Write post file
+- name: Write post file (inline content)
   loop: "{{ duply_profiles }}"
   loop_control:
     label: "/etc/duply/{{ item.name }}/post"
   when:
-    - false if item.post is not defined else (item.post | length > 0)
+    - item.post | default('') | length > 0
+    - item.post_template is not defined
   ansible.builtin.copy:
     content: "{{ item.post }}"
+    dest: "/etc/duply/{{ item.name }}/post"
+    mode: u=rwx,g=,o=
+  tags:
+    - duply
+
+- name: Write post file (from template)
+  loop: "{{ duply_profiles }}"
+  loop_control:
+    label: "/etc/duply/{{ item.name }}/post"
+  when:
+    - item.post_template is defined
+    - item.post_template | length > 0
+    - ('present' if item.state is not defined else item.state) == "present"
+  ansible.builtin.template:
+    src: "{{ item.post_template }}"
     dest: "/etc/duply/{{ item.name }}/post"
     mode: u=rwx,g=,o=
   tags:
@@ -259,7 +292,8 @@
   loop_control:
     label: "/etc/duply/{{ item.name }}/post"
   when:
-    - true if item.post is not defined else (item.post | length <= 0)
+    - item.post is not defined
+    - item.post_template is not defined
   ansible.builtin.file:
     path: "/etc/duply/{{ item.name }}/post"
     state: absent

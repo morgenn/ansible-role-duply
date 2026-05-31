@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+# Duply pre-backup script: WordPress database dump
+# Profile: {{ item.name }}
+#
+# Dumps the WordPress database to a compressed SQL file before the backup runs.
+# The dump file lives in the docroot/secure/ directory (apache-protected).
+# Uses WP-CLI for reliable credential handling (reads wp-config.php automatically).
+
+set -uo pipefail
+umask 077
+
+# Skip if not running a backup operation
+if [[ "${CMD_NEXT:-}" != "bkp" ]]; then
+  echo "Skipping pre script, not running a backup"
+  exit 0
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Configuration
+# ─────────────────────────────────────────────────────────────────────────────
+
+SITE_PATH="{{ item.source }}"
+DUMP_DIR="${SITE_PATH}/secure"
+DUMP_NAME="{{ item.db_dump_name | default(item.name) }}"
+DUMP_FILE="${DUMP_DIR}/${DUMP_NAME}-db-backup.sql.gz"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ensure dump directory exists
+# ─────────────────────────────────────────────────────────────────────────────
+
+if [[ ! -d "$DUMP_DIR" ]]; then
+  mkdir -p "$DUMP_DIR"
+  chmod 750 "$DUMP_DIR"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Database dump
+# ─────────────────────────────────────────────────────────────────────────────
+
+if command -v wp &>/dev/null && [[ -f "${SITE_PATH}/wp-config.php" ]]; then
+  # WP-CLI method (preferred — reads credentials from wp-config.php)
+  wp db export - --path="$SITE_PATH" --allow-root --quiet 2>/dev/null | gzip -9 > "$DUMP_FILE"
+  RESULT=$?
+elif command -v mysqldump &>/dev/null && [[ -f "${SITE_PATH}/wp-config.php" ]]; then
+  # Fallback: extract credentials from wp-config.php via PHP
+  DB_NAME=$(php -r "require_once('${SITE_PATH}/wp-config.php'); echo DB_NAME;" 2>/dev/null)
+  DB_USER=$(php -r "require_once('${SITE_PATH}/wp-config.php'); echo DB_USER;" 2>/dev/null)
+  DB_PASS=$(php -r "require_once('${SITE_PATH}/wp-config.php'); echo DB_PASSWORD;" 2>/dev/null)
+  DB_HOST=$(php -r "require_once('${SITE_PATH}/wp-config.php'); echo DB_HOST;" 2>/dev/null)
+  DB_HOST="${DB_HOST%:*}"  # Strip port from host string
+
+  mysqldump \
+    --user="${DB_USER}" \
+    --password="${DB_PASS}" \
+    --host="${DB_HOST}" \
+    --no-create-db \
+    --add-drop-table \
+    --single-transaction \
+    --routines \
+    --triggers \
+    "${DB_NAME}" 2>/dev/null | gzip -9 > "$DUMP_FILE"
+  RESULT=$?
+else
+  echo "WARNING: Neither wp-cli nor mysqldump available, skipping database dump"
+  exit 0
+fi
+
+if [[ $RESULT -eq 0 && -s "$DUMP_FILE" ]]; then
+  echo "Database dump created: ${DUMP_FILE} ($(du -h "$DUMP_FILE" | cut -f1))"
+else
+  echo "WARNING: Database dump failed or is empty"
+  rm -f "$DUMP_FILE"
+  # Don't fail the backup — code backup is still valuable without DB
+  exit 0
+fi
