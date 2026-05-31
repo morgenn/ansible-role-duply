@@ -7,12 +7,16 @@
 duploy_packages:
   - python3-pip
   - python3-boto3
-  - gnupg2
   - cronie
 
 # pip packages needed for duplicity on AL2023
+# Use --no-deps to avoid pulling in every optional backend (Dropbox, Azure, etc.)
+# boto3 (S3 backend) is already installed via dnf above.
 duply_pip_packages:
-  - duplicity
+  - name: duplicity
+    extra_args: "--no-deps"
+  - name: fasteners
+  - name: python-gettext
 
 # duply install method: 'package' (dnf/apt) or 'source' (download script)
 duply_install_method: source

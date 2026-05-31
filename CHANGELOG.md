@@ -1,5 +1,30 @@
 # Changelog
 
+## [3.2.0](https://github.com/morgenn/ansible-role-duply/compare/v3.1.0...v3.2.0) (2026-05-31)
+
+
+### Features
+
+* add configurable backup logging to file (duply_log_dir)
+* add MAX_FULLBKP_AGE for automatic weekly full backups
+* change default strategy to daily incremental with weekly full cycle
+* deploy README-recovery.md to /etc/duply/ with restore examples
+* cron job logs all output (success + failure) with [FAILED] marker on error
+* three cron modes: log-to-file (default), cronic-only, or bare command
+* fix pip install --no-deps for AL2023 duplicity (avoids dependency hell)
+
+
+## [3.1.0](https://github.com/morgenn/ansible-role-duply/compare/v3.0.0...v3.1.0) (2026-05-31)
+
+
+### Features
+
+* add WordPress DB dump pre/post templates
+* support pre_template/post_template for Jinja2 template rendering
+* configurable dump name via db_dump_name profile variable
+* compressed dumps in docroot/secure/ (Shibboleth-protected)
+
+
 ## [3.0.0](https://github.com/morgenn/ansible-role-duply/compare/v2.1.0...v3.0.0) (2026-05-31)
 
 

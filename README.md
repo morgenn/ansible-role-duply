@@ -278,6 +278,40 @@ Local path to clone cronic source.
 duply_cronic_src_path: /opt/umac/src/cronic
 ```
 
+### duply_log_dir
+
+Directory for backup log files. Each profile gets its own log at `<dir>/<profile-name>.log`.
+Set to empty string to disable file logging (falls back to cronic-only mode).
+
+#### Default value
+
+```YAML
+duply_log_dir: /var/log/duply
+```
+
+### duply_use_cronic
+
+Wrap backup command with cronic (emails MAILTO on failure only).
+Only used when `duply_log_dir` is empty. When logging is enabled, cron's native
+MAILTO handles failure alerts via the exit code.
+
+#### Default value
+
+```YAML
+duply_use_cronic: true
+```
+
+### duply_default_max_fullbkp_age
+
+Maximum age of the last full backup before an incremental run is automatically
+promoted to a full backup. Set to `1W` for weekly full backups with daily incrementals.
+
+#### Default value
+
+```YAML
+duply_default_max_fullbkp_age: 1W
+```
+
 ### duply_default_verbosity
 
 Default verbosity level

@@ -14,6 +14,7 @@ ARCH_DIR="{{ item.arch_dir }}"
 
 MAX_AGE="{{ item.max_age | default(duply_default_max_age) }}"
 MAX_FULL_BACKUPS="{{ item.max_full | default(duply_default_max_full) }}"
+MAX_FULLBKP_AGE="{{ item.max_fullbkp_age | default(duply_default_max_fullbkp_age) }}"
 VERBOSITY="{{ item.verbosity | default(duply_default_verbosity) }}"
 
 DUPL_PARAMS="$DUPL_PARAMS --volsize {{ item.volsize | default(duply_default_volsize) }}"

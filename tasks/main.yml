@@ -19,8 +19,9 @@
 - name: Install pip packages (for platforms without native duplicity)
   loop: "{{ duply_pip_packages | default([]) }}"
   ansible.builtin.pip:
-    name: "{{ item }}"
+    name: "{{ item.name if item is mapping else item }}"
     state: present
+    extra_args: "{{ item.extra_args | default(omit) if item is mapping else omit }}"
   when: duply_pip_packages | default([]) | length > 0
   tags:
     - duply
@@ -300,6 +301,17 @@
   tags:
     - duply
 
+- name: Create log directory for duply backups
+  ansible.builtin.file:
+    path: "{{ duply_log_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: duply_log_dir | default('') | length > 0
+  tags:
+    - duply
+
 - name: Create cronjob entry
   loop: "{{ duply_profiles }}"
   loop_control:
@@ -311,8 +323,25 @@
     day: "{{ item.day | default(duply_default_day) }}"
     month: "{{ item.month | default(duply_default_month) }}"
     weekday: "{{ item.weekday | default(duply_default_weekday) }}"
-    job: "cronic {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }}"
+    job: >-
+      {% if duply_log_dir | default('') | length > 0 -%}
+      {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }} >> {{ duply_log_dir }}/{{ item.name }}.log 2>&1 || { echo "[FAILED] $(date '+\%Y-\%m-\%d \%H:\%M:\%S') backup {{ item.name }} exited $?" >> {{ duply_log_dir }}/{{ item.name }}.log; exit 1; }
+      {%- elif duply_use_cronic | default(true) -%}
+      cronic {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }}
+      {%- else -%}
+      {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }}
+      {%- endif %}
     state: "{{ item.state | default('present') }}"
+  tags:
+    - duply
+
+- name: Deploy recovery README to /etc/duply/
+  ansible.builtin.template:
+    src: README-recovery.md.j2
+    dest: /etc/duply/README-recovery.md
+    owner: root
+    group: root
+    mode: '0644'
   tags:
     - duply
 

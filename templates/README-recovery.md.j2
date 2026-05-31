@@ -1,0 +1,132 @@
+# Duply Backup Recovery Guide
+
+Generated: {{ ansible_managed }}
+
+## Backup Profiles on This Server
+
+{% for profile in duply_profiles %}
+{% if profile.state | default('present') == 'present' %}
+### {{ profile.name }}
+
+- **Source:** `{{ profile.source | default('/') }}`
+- **Target:** `{{ profile.target | default(duply_target) }}/{{ inventory_hostname }}/{{ profile.name }}`
+- **Schedule:** {{ profile.minute | default(duply_default_minute) }} {{ profile.hour | default(duply_default_hour) }} {{ profile.day | default(duply_default_day) }} {{ profile.month | default(duply_default_month) }} {{ profile.weekday | default(duply_default_weekday) }}
+- **Strategy:** Daily incremental, full every {{ profile.max_fullbkp_age | default(duply_default_max_fullbkp_age) }}
+- **Retention:** {{ profile.max_age | default(duply_default_max_age) }} max age, {{ profile.max_full | default(duply_default_max_full) }} full sets kept
+
+{% endif %}
+{% endfor %}
+
+## Common Recovery Commands
+
+### Check backup status
+
+```bash
+# List available backup sets and dates
+duply <profile-name> status
+
+# List files in the latest backup
+duply <profile-name> list
+
+# List files as of a specific date
+duply <profile-name> list 3D          # 3 days ago
+duply <profile-name> list 2026-05-28  # specific date
+```
+
+### Restore entire backup
+
+```bash
+# Restore latest state to a temporary directory (SAFE — does not overwrite source)
+duply <profile-name> restore /tmp/restore-test
+
+# Restore to a specific point in time
+duply <profile-name> restore /tmp/restore-test 3D
+duply <profile-name> restore /tmp/restore-test 2026-05-28T09:00:00
+
+# Restore directly to original location (DESTRUCTIVE — overwrites current files)
+duply <profile-name> restore <source-path>
+```
+
+### Restore a single file
+
+```bash
+# Fetch one file from the latest backup
+duply <profile-name> fetch path/to/file.php /tmp/recovered-file.php
+
+# Fetch from a specific date
+duply <profile-name> fetch path/to/file.php /tmp/recovered-file.php 2D
+```
+
+Note: paths in `fetch` are relative to the SOURCE directory.
+
+### Verify backup integrity
+
+```bash
+# Compare latest backup against current source (shows differences)
+duply <profile-name> verify
+```
+
+### Manual backup (outside cron schedule)
+
+```bash
+# Run an incremental backup now
+duply <profile-name> incr
+
+# Force a full backup now
+duply <profile-name> full
+
+# Full backup + verify + purge old sets
+duply <profile-name> full+verify+purgeFull --force
+```
+
+## Recovery Workflow (Full Site Restore)
+
+1. **Stop services** to prevent writes during restore:
+   ```bash
+   sudo systemctl stop httpd varnish php-fpm lsyncd@*
+   ```
+
+2. **Restore files** to a temp location first:
+   ```bash
+   sudo duply <profile-name> restore /tmp/site-restore
+   ```
+
+3. **Verify** the restored content looks correct:
+   ```bash
+   ls -la /tmp/site-restore/
+   diff -r /tmp/site-restore/wp-config.php <source>/wp-config.php
+   ```
+
+4. **Swap into place** (or rsync selectively):
+   ```bash
+   sudo rsync -av --delete /tmp/site-restore/ <source>/
+   ```
+
+5. **Restore database** (if DB dump was included in backup):
+   ```bash
+   gunzip -c <source>/secure/<profile>-db-backup.sql.gz | wp db import - --path=<source>
+   # or with mysql client:
+   gunzip -c <source>/secure/<profile>-db-backup.sql.gz | mysql -u <user> -p <dbname>
+   ```
+
+6. **Restart services:**
+   ```bash
+   sudo systemctl start httpd varnish php-fpm lsyncd@*
+   ```
+
+## Profile Configs
+
+Profile configurations are stored in `/etc/duply/<profile-name>/conf`.
+
+## Troubleshooting
+
+```bash
+# Run backup with maximum verbosity
+duply <profile-name> incr -- --verbosity 9
+
+# Check what duplicity sees in the target
+duplicity collection-status <target-url>
+
+# Force full backup if incremental chain is broken
+duply <profile-name> full
+```
