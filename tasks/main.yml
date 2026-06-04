@@ -351,4 +351,16 @@
   tags:
     - duply
 
+- name: Create EFS backup cleanup cron (remove orphaned archives older than {{ duply_efs_cleanup_days }} days)
+  ansible.builtin.cron:
+    name: "# Cleanup old duplicity archives on EFS"
+    minute: '0'
+    hour: '4'
+    weekday: '0'
+    user: root
+    job: "find {{ duply_efs_sync_dest }} -type f -mtime +{{ duply_efs_cleanup_days }} -delete 2>/dev/null; find {{ duply_efs_sync_dest }} -type d -empty -delete 2>/dev/null"
+    state: "{{ 'present' if (duply_efs_sync_dest | default('') | length > 0 and duply_efs_cleanup_days | default(0) | int > 0) else 'absent' }}"
+  tags:
+    - duply
+
 ...

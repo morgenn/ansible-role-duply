@@ -104,6 +104,20 @@ duply_log_dir: /var/log/duply
 # @var duply_use_cronic:description: Wrap backup command with cronic (emails on failure only)
 duply_use_cronic: true
 
+# @var duply_efs_sync_dest:description: >
+#   EFS destination to rsync backup archives after completion.
+#   Set to empty string to disable post-backup EFS sync.
+#   Only incremental changes are transferred (rsync is efficient).
+# @end
+duply_efs_sync_dest: ''
+
+# @var duply_efs_cleanup_days:description: >
+#   Delete backup archives on EFS older than this many days.
+#   Runs weekly (Sunday 4am) to clean up orphaned files from purged backup sets.
+#   Set to 0 to disable cleanup.
+# @end
+duply_efs_cleanup_days: 30
+
 # @var duply_nice_prefix:description: >
 #   Command prefix to limit CPU and I/O priority of backup jobs.
 #   Ensures web services (apache, varnish, php-fpm) always get priority.
@@ -118,13 +132,14 @@ duply_nice_prefix: 'nice -n 19 ionice -c3'
 #   - duply_bin_path: path to duply binary
 #   - duply_log_dir: log directory path
 #   - duply_nice_prefix: CPU/IO priority prefix
+#   - duply_efs_sync_dest: EFS sync destination (empty to disable)
 #   - item.name: profile name
 #   - item.command / duply_default_command: backup command
 #   Override this to customize logging, wrappers, or output handling.
 # @end
 duply_cron_job_template: >-
   {% if duply_log_dir | default('') | length > 0 -%}
-  { echo ""; echo "═══ START $(date '+\%Y-\%m-\%d \%H:\%M:\%S') {{ item.name }} ═══"; {{ duply_nice_prefix }} {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }} 2>&1; RC=$?; if [ $RC -ne 0 ]; then echo "[FAILED] exit $RC"; fi; echo "═══ END   $(date '+\%Y-\%m-\%d \%H:\%M:\%S') {{ item.name }} (exit $RC) ═══"; (exit $RC); } >> {{ duply_log_dir }}/{{ item.name }}.log 2>&1
+  { echo ""; echo "═══ START $(date '+\%Y-\%m-\%d \%H:\%M:\%S') {{ item.name }} ═══"; {{ duply_nice_prefix }} {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }} 2>&1; RC=$?; if [ $RC -ne 0 ]; then echo "[FAILED] exit $RC"; fi;{% if duply_efs_sync_dest | default('') | length > 0 %} if [ $RC -eq 0 ]; then echo "Syncing to EFS..."; {{ duply_nice_prefix }} rsync -a /backup/duplicity/{{ item.name }}/ {{ duply_efs_sync_dest }}/{{ item.name }}/ 2>&1; echo "EFS sync complete."; fi;{% endif %} echo "═══ END   $(date '+\%Y-\%m-\%d \%H:\%M:\%S') {{ item.name }} (exit $RC) ═══"; (exit $RC); } >> {{ duply_log_dir }}/{{ item.name }}.log 2>&1
   {%- elif duply_use_cronic | default(true) -%}
   cronic {{ duply_nice_prefix }} {{ duply_bin_path | default('/usr/local/bin/duply') }} {{ item.name }} {{ item.command | default(duply_default_command) }}
   {%- else -%}
