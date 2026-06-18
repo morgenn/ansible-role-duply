@@ -95,6 +95,11 @@ duply_install_method: package
 # @var duply_source_url:description: URL to download duply source tarball (when duply_install_method is 'source')
 duply_source_url: "https://sourceforge.net/projects/ftplicity/files/duply%20%28simple%20duplicity%29/2.5.x/duply_2.5.1.tgz/download"
 
+# @var duply_source_fallback_url:description: >
+#   Fallback URL if the primary (SourceForge) times out. Set to a mirror, S3 bucket,
+#   or empty string to disable. SourceForge is notoriously unreliable during builds.
+duply_source_fallback_url: ""
+
 # @var duply_source_version:description: Version string for duply source install (used for idempotency check)
 duply_source_version: "2.5.1"
 

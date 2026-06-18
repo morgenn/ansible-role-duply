@@ -124,7 +124,41 @@
     url: "{{ duply_source_url }}"
     dest: "{{ duply_temp_dir.path }}/duply.tgz"
     mode: '0644'
+    timeout: 30
+  register: duply_download
+  retries: 2
+  delay: 5
+  until: duply_download is success
+  ignore_errors: true
   when: duply_temp_dir.path is defined
+  tags:
+    - duply
+
+- name: Download duply source (fallback URL)
+  ansible.builtin.get_url:
+    url: "{{ duply_source_fallback_url }}"
+    dest: "{{ duply_temp_dir.path }}/duply.tgz"
+    mode: '0644'
+    timeout: 60
+  when:
+    - duply_temp_dir.path is defined
+    - duply_download is failed
+    - duply_source_fallback_url | default('') | length > 0
+  tags:
+    - duply
+
+- name: Fail if duply download failed from all sources
+  ansible.builtin.fail:
+    msg: >
+      Could not download duply from primary URL ({{ duply_source_url }}) or
+      fallback ({{ duply_source_fallback_url | default('none configured') }}).
+      SourceForge may be down. Set duply_source_fallback_url to an alternate mirror
+      or pre-stage the tarball at {{ duply_temp_dir.path }}/duply.tgz.
+  when:
+    - duply_temp_dir.path is defined
+    - duply_download is failed
+    - (duply_source_fallback_url | default('') | length == 0) or
+      (duply_fallback_download is defined and duply_fallback_download is failed)
   tags:
     - duply
 
