@@ -1,0 +1,33 @@
+---
+# configure-efs-cleanup.yaml
+# Deploys the EFS cleanup cron and marker file for the backup system integration.
+# Conditionally included: only runs when duply_efs_cleanup_enabled is true.
+
+- name: Ensure /etc/umac config directory exists
+  ansible.builtin.file:
+    path: /etc/umac
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create marker file so wp-site-snapshot.sh knows duply is configured
+  ansible.builtin.copy:
+    content: |
+      # {{ ansible_managed }}
+      # This marker file indicates that duply (duplicity) is configured on this host.
+      # Used by wp-site-snapshot.sh to determine if full docroot tars are needed.
+      DUPLY_CONFIGURED=true
+      DUPLY_EFS_SYNC_DEST="{{ duply_efs_sync_dest | default('') }}"
+    dest: /etc/umac/.duply-configured
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy duplicity EFS cleanup cron file
+  ansible.builtin.template:
+    src: umac-duplicity-cleanup.cron.j2
+    dest: /etc/cron.d/umac-duplicity-cleanup
+    owner: root
+    group: root
+    mode: '0644'

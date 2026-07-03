@@ -397,4 +397,8 @@
   tags:
     - duply
 
+- name: Configure EFS cleanup cron (backup system integration)
+  ansible.builtin.include_tasks: configure-efs-cleanup.yaml
+  when: duply_efs_cleanup_enabled | bool
+
 ...

@@ -167,4 +167,11 @@ duply_cronic_repo: "https://github.com/justincase/cronic.git"
 # @var duply_cronic_src_path:description: Local path to clone cronic source
 duply_cronic_src_path: /opt/umac/src/cronic
 
+# ─── EFS Cleanup Cron ─────────────────────────────────────────────────────
+duply_efs_cleanup_enabled: false
+duply_efs_cleanup_script: "/opt/umac/utility-belt/backup/duplicity-efs-cleanup.sh"
+duply_efs_cleanup_cron_hour: 12
+duply_efs_cleanup_cron_minute: 0
+duply_efs_cleanup_cron_weekday: 1  # Monday
+
 ...

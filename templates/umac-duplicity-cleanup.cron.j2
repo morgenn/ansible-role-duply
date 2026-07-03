@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+# Weekly cleanup of old duplicity archives on EFS
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+{{ duply_efs_cleanup_cron_minute | default(0) }} {{ duply_efs_cleanup_cron_hour | default(12) }} * * {{ duply_efs_cleanup_cron_weekday | default(1) }} root test -x {{ duply_efs_cleanup_script }} && {{ duply_efs_cleanup_script }} --path {{ duply_efs_sync_dest }} --max-age {{ duply_efs_cleanup_days }} >> /var/log/umac/duplicity-efs-cleanup.log 2>&1
